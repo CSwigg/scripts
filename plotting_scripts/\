@@ -1,0 +1,119 @@
+import sys
+sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/python-fsps')
+sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/sedpy')
+sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/prospector')
+sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/p_scripts')
+
+import fsps
+import sedpy
+import prospect
+from matplotlib.pyplot import *
+import prospect.io.read_results as reader
+
+
+def visualize_results(output_directory, output_file, n_params):
+    
+    '''
+    output_directory: str that directs output directory of figures
+    output_file: str of .h5 file to load in 
+    '''
+    
+    style.use('default')
+    # ------- Visualization  -------
+    results_type = "emcee" # | "dynesty"
+    if results_type == 'emcee':
+        result, obs, _ = reader.results_from(output_file, dangerous=False)
+    elif results_type == 'dynesty':
+        result, obs, _ = reader.results_from(output_file, dangerous=False)
+
+    if results_type == "emcee":
+        chosen = np.random.choice(result["run_params"]["nwalkers"], size=10, replace=False)
+        tracefig = reader.traceplot(result, figsize=(20,18), chains=chosen)
+        savefig(output_directory + '/traceplot.png', dpi = 300)
+    else:
+        tracefig = reader.traceplot(result, figsize=(13,8))
+
+    imax = np.argmax(result['lnprobability'])
+    if results_type == "emcee":
+        i, j = np.unravel_index(imax, result['lnprobability'].shape)
+        theta_max = result['chain'][i, j, :].copy()
+        thin = 5
+    else:
+        theta_max = result["chain"][imax, :]
+        thin = 1
+
+        
+    cornerfig = reader.subcorner(result, start=0, thin=thin, truths=theta_max, 
+                                 fig=subplots(n_params, n_params, figsize=(20,20))[0])
+    savefig(output_directory + '/corner_plot.png', dpi = 300)
+    
+    
+
+    # randomly chosen parameters from chain
+    randint = np.random.randint
+    theta_rand_list = []
+    if results_type == "emcee":
+        nwalkers, niter = run_params['nwalkers'], run_params['niter']
+        for i in range(100):
+            theta = result['chain'][randint(nwalkers), randint(niter)]
+            theta_rand_list.append(theta)
+    else:
+        theta = result["chain"][randint(len(result["chain"]))]
+
+    # generate models
+    # sps = reader.get_sps(result)  # this works if using parameter files
+    
+#     mphot_list = []
+    mspec_list = []
+    for theta in theta_rand_list:
+        mspec, mphot, mextra = model.mean_model(theta, obs, sps=sps)
+        mspec_list.append(mspec)
+        
+    mspec_map, mphot_map, _ = model.mean_model(theta_max, obs, sps=sps)
+
+    # Make plot of data and model
+    
+    figure(figsize=(13,8))
+    xmin, xmax = np.min(wphot)*0.8, np.max(wphot)/0.8
+    ymin, ymax = obs["maggies"].min()*0.8, obs["maggies"].max()/0.4
+
+#     loglog(wspec, mspec, label='Model spectrum (random draw)',
+#            lw=0.7, color='navy', alpha=0.7)
+
+    for mspec in mspec_list:
+        loglog(wspec, mspec, lw=0.2, color='gray', alpha=0.2)
+        
+    loglog(wspec, mspec_map, label='Model spectrum (MAP)',
+            lw=1., color='blue')
+        
+#     errorbar(wphot, mphot, label='Model photometry (random draw)',
+#              marker='s', markersize=10, alpha=0.8, ls='', lw=3, 
+#              markerfacecolor='none', markeredgecolor='magenta', 
+#              markeredgewidth=3)
+    errorbar(wphot, mphot_map, label='Model photometry (MAP)',
+             marker='s', markersize=10, alpha=0.8, ls='', lw=3, 
+             markerfacecolor='none', markeredgecolor='blue', 
+             markeredgewidth=3)
+    errorbar(wphot, obs['maggies'], yerr=obs['maggies_unc'], 
+             label='Observed photometry', ecolor='red', 
+             marker='o', markersize=10, ls='', lw=3, alpha=0.8, 
+             markerfacecolor='none', markeredgecolor='red', 
+             markeredgewidth=3)
+
+    # plot transmission curves
+    # for f in obs['filters']:
+    #     w, t = f.wavelength.copy(), f.transmission.copy()
+    #     t = t / t.max()
+    #     t = 10**(0.2*(np.log10(ymax/ymin)))*t * ymin
+    #     loglog(w, t, lw=3, color='gray', alpha=0.7)
+
+    xlabel('Wavelength [A]')
+    ylabel('Flux Density [maggies]')
+    xlim([xmin, xmax])
+    ylim([ymin, ymax])
+    xscale('log')
+    yscale('log')
+    legend(loc='best', fontsize=10)
+    tight_layout()
+    
+    savefig(output_directory + '/sed_fit.png', dpi = 300)
