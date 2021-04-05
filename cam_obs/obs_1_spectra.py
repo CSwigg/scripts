@@ -17,8 +17,6 @@ def flux_to_maggies(wave, flux, flux_unc):
     return (maggies, maggies_unc)
 
 
-
-
 def build_obs_spectra(object_data, object_redshift, object_spectrum, test_model = None, **extras):
     """Build a dictionary of observational data.  
     
@@ -97,12 +95,17 @@ def build_obs_spectra(object_data, object_redshift, object_spectrum, test_model 
         # if using a model as fake data
         maggies = test_model['flux_flam']
         fspec_maggies = test_model['fspec_maggies'] 
-        
-    obs["maggies"] = maggies
-    obs["maggies_unc"] = maggies_unc
-    obs["wavelength"] = dfg.wspec.values*(1+object_redshift)
-    obs["spectrum"] = fspec_maggies*(1+object_redshift)
-    obs['unc'] = fspec_err_maggies*(1+object_redshift)
+        obs["maggies"] = maggies
+        obs["maggies_unc"] = maggies_unc
+        obs["wavelength"] = dfg.wspec.values*(1+object_redshift)
+        obs["spectrum"] = fspec_maggies*(1+object_redshift)
+        obs['unc'] = fspec_err_maggies*(1+object_redshift)
+    else:
+        obs["maggies"] = maggies
+        obs["maggies_unc"] = maggies_unc
+        obs["wavelength"] = dfg.wspec.values
+        obs["spectrum"] = fspec_maggies
+        obs['unc'] = fspec_err_maggies
     #obs['mask'] = None
     obs = fix_obs(obs)
 

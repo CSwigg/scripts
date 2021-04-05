@@ -172,7 +172,7 @@ def make_sed_plot(galaxy_file, g_name, hizea_file, results_dir, set_limits = Tru
     f = spectrum.data['flux'][0]
     f = (f*3.34e4*w**2*1e-17)/3631
 
-    ax.plot(w, f, lw = 0.1, c = 'green', alpha = 0.5, zorder = 0)
+    ax.plot(w*(1+z), f*(1+z), lw = 0.1, c = 'green', alpha = 0.5, zorder = 0)
     ax = random_draw(ax, run_params, obs, sps, model, result)
     ax = plot_best_spec(ax, obs, wspec, mpsec, mphot, wphot)
 
