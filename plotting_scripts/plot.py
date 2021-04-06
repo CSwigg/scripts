@@ -46,8 +46,6 @@ def generate_model(theta, obs, sps, model):
     else:
         wspec = obs["wavelength"]
         
-    mspec, mphot, mextra = model.mean_model(theta, obs, sps=sps)
-        
     return wspec, mspec, mphot, wphot, mextra
 
 
