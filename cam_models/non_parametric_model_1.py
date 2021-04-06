@@ -111,9 +111,9 @@ def build_model(object_redshift=None, ldist=10.0, fixed_metallicity=None, add_du
         model_params["duste_umin"]["init_disp"] = 5.0
         model_params["duste_gamma"]["init_disp"] = 0.2
         
-    model_params['dust2']['disp_floor'] = 1e-2 
-    model_params['dust1']['disp_floor'] = 1e-2 
-    model_params['logzsol']['disp_floor'] = 1e-3
+    #model_params['dust2']['disp_floor'] = 1e-2 
+    #model_params['dust1']['disp_floor'] = 1e-2 
+    #model_params['logzsol']['disp_floor'] = 1e-3
     #model_params['dust_index']['disp_floor'] = 1e-3
 
 

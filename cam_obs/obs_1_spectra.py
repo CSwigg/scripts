@@ -97,15 +97,16 @@ def build_obs_spectra(object_data, object_redshift, object_spectrum, test_model 
         fspec_maggies = test_model['fspec_maggies'] 
         obs["maggies"] = maggies
         obs["maggies_unc"] = maggies_unc
-        obs["wavelength"] = dfg.wspec.values*(1+object_redshift)
-        obs["spectrum"] = fspec_maggies*(1+object_redshift)
-        obs['unc'] = fspec_err_maggies*(1+object_redshift)
-    else:
-        obs["maggies"] = maggies
-        obs["maggies_unc"] = maggies_unc
         obs["wavelength"] = dfg.wspec.values
         obs["spectrum"] = fspec_maggies
         obs['unc'] = fspec_err_maggies
+
+    else:
+        obs["maggies"] = maggies
+        obs["maggies_unc"] = maggies_unc
+        obs["wavelength"] = dfg.wspec.values*(1+object_redshift)
+        obs["spectrum"] = fspec_maggies*(1+object_redshift)
+        obs['unc'] = fspec_err_maggies*(1+object_redshift)
     #obs['mask'] = None
     obs = fix_obs(obs)
 
