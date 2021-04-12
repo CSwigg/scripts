@@ -17,7 +17,7 @@ def flux_to_maggies(wave, flux, flux_unc):
     return (maggies, maggies_unc)
 
 
-def build_obs_spectra(object_data, object_redshift, object_spectrum, test_model = None, **extras):
+def build_obs_spectra(object_data, object_redshift, object_spectrum = None, test_model = None, **extras):
     """Build a dictionary of observational data.  
     
     :returns obs:
@@ -77,19 +77,20 @@ def build_obs_spectra(object_data, object_redshift, object_spectrum, test_model 
 
     
     
-    spec = object_spectrum
+    if object_spectrum is not None:
+        spec = object_spectrum
 
 
+        f = np.array(spec.data['flux'][0]).byteswap().newbyteorder()
+        w = np.array(spec.data['wave'][0]).byteswap().newbyteorder()
+        err = np.array(spec.data['err'][0]).byteswap().newbyteorder()
+        mask = np.array(spec.data['mask'][0]).byteswap().newbyteorder()
+        df = pd.DataFrame({'wspec':w, 'fspec':f, 'errspec':err, 'mask':mask})
+        dfg = df.loc[df['mask'] == 0.] 
 
-    f = np.array(spec.data['flux'][0]).byteswap().newbyteorder()
-    w = np.array(spec.data['wave'][0]).byteswap().newbyteorder()
-    err = np.array(spec.data['err'][0]).byteswap().newbyteorder()
-    mask = np.array(spec.data['mask'][0]).byteswap().newbyteorder()
-    df = pd.DataFrame({'wspec':w, 'fspec':f, 'errspec':err, 'mask':mask})
-    dfg = df.loc[df['mask'] == 0.] 
+        fspec_maggies, fspec_err_maggies = flux_to_maggies(dfg.wspec.values, dfg.fspec.values, dfg.errspec.values)
 
-
-    fspec_maggies, fspec_err_maggies = flux_to_maggies(dfg.wspec.values, dfg.fspec.values, dfg.errspec.values)
+    obs['phot_mask'] = np.array([('galex_FUV' not in f.name) for f in obs["filters"]])
 
     if test_model is not None:
         # if using a model as fake data
@@ -97,6 +98,7 @@ def build_obs_spectra(object_data, object_redshift, object_spectrum, test_model 
         fspec_maggies = test_model['fspec_maggies'] 
         obs["maggies"] = maggies
         obs["maggies_unc"] = maggies_unc
+
         obs["wavelength"] = dfg.wspec.values*(1+object_redshift)
         obs["spectrum"] = fspec_maggies
         obs['unc'] = fspec_err_maggies
@@ -104,9 +106,15 @@ def build_obs_spectra(object_data, object_redshift, object_spectrum, test_model 
     else:
         obs["maggies"] = maggies
         obs["maggies_unc"] = maggies_unc
-        obs["wavelength"] = dfg.wspec.values*(1+object_redshift)
-        obs["spectrum"] = fspec_maggies*(1+object_redshift)
-        obs['unc'] = fspec_err_maggies*(1+object_redshift)
+
+        if object_spectrum is not None:
+            obs["wavelength"] = dfg.wspec.values*(1+object_redshift)
+            obs["spectrum"] = fspec_maggies*(1+object_redshift)
+            obs['unc'] = fspec_err_maggies*(1+object_redshift)
+        else:
+            obs['wavelength'] = None
+            obs['spectrum'] = None
+            obs['unc'] = None
     #obs['mask'] = None
     obs = fix_obs(obs)
 

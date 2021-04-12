@@ -35,7 +35,8 @@ import dynesty
 
 
 def generate_model(theta, obs, sps, model):
-
+    
+    obs['wavelength'] = None
     mspec, mphot, mextra = model.mean_model(theta, obs, sps=sps)
 
     a = 1.0 + model.params.get('zred', 0.0) # cosmological redshifting
@@ -97,20 +98,20 @@ def make_corner_plot(galaxy_file, g_name, hizea_file, results_dir, n_params):
     thin = 5
     cornerfig = reader.subcorner(result, start=0, thin=thin, truths=theta_max,
                                  fig=plt.subplots(n_params, n_params, figsize=(25,25))[0], plot_datapoints = False)
-    plt.savefig('/{}/cornerplot_new.png'.format(results_dir,g_name), dpi = 300)
+    plt.savefig('{}{}/cornerplot_new.png'.format(results_dir, g_name), dpi = 300)
 
 
 def make_traceplot(galaxy_file, g_name, hizea_file, results_dir):
     
     theta_max, obs, sps, model, run_params, result = get_from_reader(galaxy_file, hizea_file) 
-    tracefig = reader.traceplot(result, figsize=(20,18))
-    plt.savefig('/{}/traceplot_new.png'.format(results_dir, g_name), dpi = 300, overwrite = True)
+    tracefig = reader.traceplot(result, figsize=(28,18))
+    plt.savefig('{}{}/traceplot_new.png'.format(results_dir, g_name), dpi = 300, overwrite = True)
 
 
 
 def plot_best_spec(ax_in, obs, wspec, mspec, mphot, wphot):
     
-    ax_in.set_xlabel('Wavelength [microns]')
+    ax_in.set_xlabel('Wavelength [AA]')
     ax_in.set_ylabel('Flux [maggies]')
     
     ax_in.plot(wspec, mspec, lw = .2, color = 'blue', alpha = 0.5, label = 'Model Spectrum',zorder=1)
@@ -179,6 +180,6 @@ def make_sed_plot(galaxy_file, g_name, hizea_file, results_dir, set_limits = Tru
     if return_fig_ax:
         return (fig, ax)
     else:
-        plt.savefig('{}{}_sed_plot_new.png'.format(results_dir, g_name), dpi = 300, overwrite = True)
+        plt.savefig('{}{}/{}_sed_plot_new.png'.format(results_dir, g_name, g_name), dpi = 300, overwrite = True)
         
 
