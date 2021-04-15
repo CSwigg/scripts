@@ -25,8 +25,10 @@ from prospect.utils.obsutils import fix_obs
 import prospect.io.read_results as reader
 from helper_functions import * 
 
-from non_parametric_model_1 import *
-from fast_step_basis_sps import *
+from non_parametric_model_1 import build_model
+from parametric_model_1 import build_model_parametric 
+from fast_step_basis_sps import build_sps
+from csps_step_basis_sps import build_sps_csps
 from obs_1_spectra import *
 from calc_likelihood import *
 
@@ -50,36 +52,19 @@ def generate_model(theta, obs, sps, model):
     return wspec, mspec, mphot, wphot, mextra
 
 
-def get_from_reader(filename, hizea_file):
+def get_from_reader(filename, hizea_file, model_type):
     result, obs, _ = reader.results_from(filename, dangerous=False)
     data = hizea_file.data[0]
-
-    flux_flam = np.array(data['FLUX_FLAM'])
-    flux_flam_err = np.array(data['FLUX_FLAM_ERR'])
-
-    M_AB = np.array(data['AB_MAG'])
-    M_AB_UNC = np.array(data['AB_MAG_ERR'])
-    flux_flam = np.array(data['FLUX_FLAM'])
-    flux_flam_err = np.array(data['FLUX_FLAM_ERR'])
-
-    indices_good = np.where((np.abs(M_AB) != 99.) & (~np.isnan(M_AB)) & (M_AB > 15.00))
-
-    M_AB_UNC = M_AB_UNC[indices_good[0]]
-    M_AB = M_AB[indices_good[0]]
-    flux_flam = flux_flam[indices_good[0]]
-    flux_flam_err = flux_flam_err[indices_good[0]]
-
-    mags = M_AB
-
-    wave = data['PHOT_WAVE'][indices_good[0]]
-
-    maggies = (flux_flam*3.34e4*wave**2*1e-17)/(3631)
-    maggies_unc = (flux_flam_err*3.34e4*wave**2*1e-17)/(3631)
-
     run_params = result['run_params']
 
-    sps = build_sps(**run_params)
-    model = build_model(**run_params)
+
+    if model_type == 'parametric':
+        model = build_model_parametric(**run_params)
+        sps = build_sps_csps(**run_params)
+    else:
+        model = build_model(**run_params)
+        sps = build_sps(**run_params)
+
 
     imax = np.argmax(result['lnprobability'])
     i, j = np.unravel_index(imax, result['lnprobability'].shape)
@@ -91,9 +76,9 @@ def get_from_reader(filename, hizea_file):
 
 
 
-def make_corner_plot(galaxy_file, g_name, hizea_file, results_dir, n_params):
+def make_corner_plot(galaxy_file, g_name, hizea_file, results_dir, n_params, model_type):
     
-    theta_max, obs, sps, model, run_params, result = get_from_reader(galaxy_file, hizea_file) 
+    theta_max, obs, sps, model, run_params, result = get_from_reader(galaxy_file, hizea_file, model_type) 
     
     thin = 5
     cornerfig = reader.subcorner(result, start=0, thin=thin, truths=theta_max,
@@ -101,9 +86,9 @@ def make_corner_plot(galaxy_file, g_name, hizea_file, results_dir, n_params):
     plt.savefig('{}{}/cornerplot_new.png'.format(results_dir, g_name), dpi = 300)
 
 
-def make_traceplot(galaxy_file, g_name, hizea_file, results_dir):
+def make_traceplot(galaxy_file, g_name, hizea_file, results_dir, model_type):
     
-    theta_max, obs, sps, model, run_params, result = get_from_reader(galaxy_file, hizea_file) 
+    theta_max, obs, sps, model, run_params, result = get_from_reader(galaxy_file, hizea_file, model_type) 
     tracefig = reader.traceplot(result, figsize=(28,18))
     plt.savefig('{}{}/traceplot_new.png'.format(results_dir, g_name), dpi = 300, overwrite = True)
 
@@ -142,9 +127,9 @@ def random_draw(ax, run_params, obs, sps, model, result):
 
 
 
-def make_sed_plot(galaxy_file, g_name, hizea_file, results_dir, set_limits = True, return_fig_ax = False):
+def make_sed_plot(galaxy_file, g_name, hizea_file, results_dir, model_type, set_limits = True, return_fig_ax = False):
 
-    theta_max, obs, sps, model, run_params, result = get_from_reader(galaxy_file, hizea_file) 
+    theta_max, obs, sps, model, run_params, result = get_from_reader(galaxy_file, hizea_file, model_type) 
 
     wave_spectrum = obs['wavelength']
     flux_spectrum = obs['spectrum']

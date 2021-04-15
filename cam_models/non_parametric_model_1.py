@@ -27,7 +27,7 @@ def build_model(object_redshift=None, ldist=10.0, fixed_metallicity=None, add_du
     model_params['logsfr_ratios']['N'] = nbins_sfh-1
     model_params['logsfr_ratios']['init'] = np.full(nbins_sfh-1,0.0) # constant SFH
     model_params['logsfr_ratios']['prior'] = priors.StudentT(mean=np.full(nbins_sfh-1,0.0),
-                                                                  scale=np.full(nbins_sfh-1,0.3),
+                                                                  scale=np.full(nbins_sfh-1,0.6),
                                                                   df=np.full(nbins_sfh-1,2))
     
     
