@@ -2,6 +2,7 @@
 Model that adopts a non-parametric continuity SFH, two component dust attenuation,
 and dust emission. 
 '''
+
 import sys 
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/python-fsps')
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/sedpy')
@@ -21,13 +22,13 @@ def build_model(object_redshift=None, ldist=10.0, fixed_metallicity=None, add_du
     from prospect.models import priors, transforms
 
     model_params = TemplateLibrary["continuity_sfh"]
-    nbins_sfh = 12
+    nbins_sfh = 13
     model_params['agebins']['N'] = nbins_sfh
     model_params['mass']['N'] = nbins_sfh
     model_params['logsfr_ratios']['N'] = nbins_sfh-1
     model_params['logsfr_ratios']['init'] = np.full(nbins_sfh-1,0.0) # constant SFH
     model_params['logsfr_ratios']['prior'] = priors.StudentT(mean=np.full(nbins_sfh-1,0.0),
-                                                                  scale=np.full(nbins_sfh-1,0.6),
+                                                                  scale=np.full(nbins_sfh-1,0.3),
                                                                   df=np.full(nbins_sfh-1,2))
     
     
@@ -44,7 +45,8 @@ def build_model(object_redshift=None, ldist=10.0, fixed_metallicity=None, add_du
     
 
 
-    log_agebins = np.array([[0., 6.75], 
+    log_agebins = np.array([[0., 6.5],
+                            [6.5, 6.75], 
                             [6.75, 7.],
                             [7., 7.25],
                             [7.25, 7.5],
@@ -105,7 +107,7 @@ def build_model(object_redshift=None, ldist=10.0, fixed_metallicity=None, add_du
     model_params['dust_index']['disp_floor'] = 1e-3
 
 
-    model = SedModel(model_params)
+    model = SpecModel(model_params)
 
     return model
 

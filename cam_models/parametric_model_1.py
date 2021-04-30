@@ -21,6 +21,7 @@ def build_model_parametric(object_redshift=None, ldist=10.0, fixed_metallicity=N
     from prospect.models import priors, transforms
 
     model_params = TemplateLibrary["parametric_sfh"]
+    model_params.update(TemplateLibrary["burst_sfh"])
     
     model_params["dust1"] = {"N": 1, "isfree": False, 'depends_on': transforms.dustratio_to_dust1,
                         "init": 1., "units": "optical depth towards young stars"}
@@ -66,12 +67,22 @@ def build_model_parametric(object_redshift=None, ldist=10.0, fixed_metallicity=N
     model_params["logzsol"]["prior"] = priors.TopHat(mini=-0.5, maxi=0.5)
 
     model_params["tage"]["isfree"] = True
-    model_params["tage"]["init"] = 13.
-    model_params["tage"]["prior"] = priors.TopHat(mini=0.001, maxi=9)
+    model_params["tage"]["init"] = 3.
+    model_params["tage"]["prior"] = priors.TopHat(mini=0.001, maxi=7.5)
 
     model_params["tau"]["isfree"] = True
-    model_params['tau']['init'] = 1.
-    model_params["tau"]["prior"] = priors.LogUniform(mini=.1, maxi=15)
+    model_params['tau']['init'] = 0.5
+    model_params["tau"]["prior"] = priors.LogUniform(mini=.001, maxi=20)
+
+    model_params["fage_burst"]["isfree"] = True
+    model_params["fage_burst"]["prior"] = priors.LogUniform(mini=0.95, maxi=0.995)
+    model_params["fage_burst"]['init'] = 0.990
+
+    model_params['tburst']['init'] = None
+    model_params["fburst"]["isfree"] = True
+    model_params["fburst"]["init"] = 0.25
+    model_params["fburst"]["prior"] = priors.LogUniform(mini=0.00001, maxi=0.999)
+
     
     
     if fixed_metallicity is not None:
