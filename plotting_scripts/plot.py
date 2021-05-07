@@ -3,6 +3,7 @@ import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
+from astropy.table import Table
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -26,6 +27,7 @@ import prospect.io.read_results as reader
 from helper_functions import * 
 
 from non_parametric_model_1 import build_model
+from non_parametric_model_old import build_model_old
 from parametric_model_1 import build_model_parametric 
 from fast_step_basis_sps import build_sps
 from csps_step_basis_sps import build_sps_csps
@@ -61,8 +63,13 @@ def get_from_reader(filename, hizea_file, model_type):
     if model_type == 'parametric':
         model = build_model_parametric(**run_params)
         sps = build_sps_csps(**run_params)
-    else:
+
+    elif model_type == 'non_parametric':
         model = build_model(**run_params)
+        sps = build_sps(**run_params)
+
+    elif model_type == 'non_parametric_old':
+        model = build_model_old(**run_params)
         sps = build_sps(**run_params)
 
 
@@ -84,6 +91,7 @@ def make_corner_plot(galaxy_file, g_name, hizea_file, results_dir, n_params, mod
     cornerfig = reader.subcorner(result, start=0, thin=thin, truths=theta_max,
                                  fig=plt.subplots(n_params, n_params, figsize=(25,25))[0], plot_datapoints = False)
     plt.savefig('{}{}/cornerplot_new.png'.format(results_dir, g_name), dpi = 300)
+    plt.close()
 
 
 def make_traceplot(galaxy_file, g_name, hizea_file, results_dir, model_type):
@@ -91,20 +99,23 @@ def make_traceplot(galaxy_file, g_name, hizea_file, results_dir, model_type):
     theta_max, obs, sps, model, run_params, result = get_from_reader(galaxy_file, hizea_file, model_type) 
     tracefig = reader.traceplot(result, figsize=(28,18))
     plt.savefig('{}{}/traceplot_new.png'.format(results_dir, g_name), dpi = 300, overwrite = True)
+    plt.close()
 
 
 
-def plot_best_spec(ax_in, obs, wspec, mspec, mphot, wphot):
+def plot_best_spec(ax_in, obs, wspec, mspec, mphot, wphot, run_params):
+
+    z = run_params['object_redshift']
     
     ax_in.set_xlabel('Wavelength [AA]')
     ax_in.set_ylabel('Flux [maggies]')
     
-    ax_in.plot(wspec, mspec, lw = .2, color = 'blue', alpha = 0.5, label = 'Model Spectrum',zorder=1)
+    ax_in.plot(wspec/(1+z), mspec, lw = .2, color = 'blue', alpha = 0.5, label = 'Model Spectrum',zorder=1)
     
     
-    ax_in.scatter(obs['phot_wave'],obs['maggies'], c = 'magenta', s = 30, label = 'Data',zorder=2)
-    ax_in.errorbar(obs['phot_wave'],obs['maggies'], obs['maggies_unc'], c = 'magenta', linestyle = 'None',zorder=2)
-    ax_in.scatter(obs['phot_wave'], mphot, c = 'red', s = 30, label = 'Model photometry',zorder=2)
+    ax_in.scatter(obs['phot_wave']/(1+z),obs['maggies'], c = 'magenta', s = 30, label = 'Data',zorder=2)
+    ax_in.errorbar(obs['phot_wave']/(1+z),obs['maggies'], obs['maggies_unc'], c = 'magenta', linestyle = 'None',zorder=2)
+    ax_in.scatter(obs['phot_wave']/(1+z), mphot, c = 'red', s = 30, label = 'Model photometry',zorder=2)
 
     ax_in.set_xscale('log')
     ax_in.set_yscale('log') 
@@ -118,12 +129,12 @@ def random_draw(ax, run_params, obs, sps, model, result):
     randint = np.random.randint
     theta_rand_list = []
     nwalkers, niter = run_params['nwalkers'], run_params['niter']
+    z = run_params['object_redshift']
     for i in range(100):
         theta = result['chain'][randint(nwalkers), randint(niter)]
         wspec, mpsec, mphot, wphot, mextra = generate_model(theta, obs, sps, model) 
-        ax.plot(wspec, mpsec, lw = 0.1, alpha = 0.5, color = 'gray', zorder = 0)
+        ax.plot(wspec/(1+z), mpsec, lw = 0.1, alpha = 0.5, color = 'gray', zorder = 0)
     return ax
-
 
 
 
@@ -133,7 +144,7 @@ def make_sed_plot(galaxy_file, g_name, hizea_file, results_dir, model_type, set_
 
     wave_spectrum = obs['wavelength']
     flux_spectrum = obs['spectrum']
-    obs['wavelength'] = None
+    #obs['wavelength'] = None
 
 
     # SED plot
@@ -143,7 +154,10 @@ def make_sed_plot(galaxy_file, g_name, hizea_file, results_dir, model_type, set_
     ax = fig.add_subplot(111)
     ax.set_title(g_name)
 
+    z = run_params['object_redshift']
     xmin, xmax = np.min(wphot)*0.8, np.max(wphot)/0.8
+    #xmin, xmax = min(wave_spectrum/(1+z)), max(wave_spectrum/(1+z))
+    #xmin, xmax = 2500, 7000
     ymin, ymax = obs["maggies"].min()*0.3, obs["maggies"].max()/0.8
 
     if set_limits:
@@ -156,15 +170,19 @@ def make_sed_plot(galaxy_file, g_name, hizea_file, results_dir, model_type, set_
     f = spectrum.data['flux'][0]
     f = (f*3.34e4*w**2*1e-17)/3631
 
-    ax.plot(w*(1+z), f*(1+z), lw = 0.1, c = 'green', alpha = 0.5, zorder = 0)
+    # obs frame: ax.plot(w*(1+z), f*(1+z), lw = 0.1, c = 'green', alpha = 0.5, zorder = 0)
+    range_cut = np.where((w > 3500) & (w < 4200))
+    ax.plot(w, f*(1+z), lw = 0.1, c = 'green', alpha = 0.5, zorder = 0)
+    ax.plot(w[range_cut], f[range_cut]*(1+z), c = 'orange', lw = .5, label = 'fit region', zorder = 0)
     ax = random_draw(ax, run_params, obs, sps, model, result)
-    ax = plot_best_spec(ax, obs, wspec, mpsec, mphot, wphot)
+    ax = plot_best_spec(ax, obs, wspec, mpsec, mphot, wphot, run_params)
 
     plt.legend()
     
     if return_fig_ax:
         return (fig, ax)
     else:
-        plt.savefig('{}{}/{}_sed_plot_new.png'.format(results_dir, g_name, g_name), dpi = 300, overwrite = True)
+        plt.savefig('{}{}/{}_sed_plot_full.png'.format(results_dir, g_name, g_name), dpi = 300, overwrite = True)
+        plt.close()
         
 

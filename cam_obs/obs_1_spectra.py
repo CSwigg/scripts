@@ -1,6 +1,6 @@
 import sys
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/python-fsps')
-sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/sedpy')
+#sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/sedpy')
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/prospector')
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/p_scripts')
 
@@ -10,6 +10,7 @@ import prospect
 from prospect.utils.obsutils import fix_obs
 import numpy as np
 import pandas as pd
+print(sedpy)
 
 def flux_to_maggies(wave, flux, flux_unc):
     maggies = flux*3.34e4*wave**2*1e-17/3631

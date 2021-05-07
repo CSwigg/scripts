@@ -1,8 +1,3 @@
-'''
-Model that adopts a non-parametric continuity SFH, two component dust attenuation,
-and dust emission. 
-'''
-
 import sys 
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/python-fsps')
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/sedpy')
@@ -14,7 +9,7 @@ import sedpy
 import prospect
 import numpy as np
 
-def build_model(object_redshift=None, ldist=10.0, fixed_metallicity=None, add_duste=False, 
+def build_model_old(object_redshift=None, ldist=10.0, fixed_metallicity=None, add_duste=False, 
                 **extras):
 
     from prospect.models.sedmodel import SedModel, SpecModel
@@ -22,13 +17,13 @@ def build_model(object_redshift=None, ldist=10.0, fixed_metallicity=None, add_du
     from prospect.models import priors, transforms
 
     model_params = TemplateLibrary["continuity_sfh"]
-    nbins_sfh = 13
+    nbins_sfh = 12
     model_params['agebins']['N'] = nbins_sfh
     model_params['mass']['N'] = nbins_sfh
     model_params['logsfr_ratios']['N'] = nbins_sfh-1
     model_params['logsfr_ratios']['init'] = np.full(nbins_sfh-1,0.0) # constant SFH
     model_params['logsfr_ratios']['prior'] = priors.StudentT(mean=np.full(nbins_sfh-1,0.0),
-                                                                  scale=np.full(nbins_sfh-1,0.6),
+                                                                  scale=np.full(nbins_sfh-1,0.3),
                                                                   df=np.full(nbins_sfh-1,2))
     
     
@@ -45,8 +40,7 @@ def build_model(object_redshift=None, ldist=10.0, fixed_metallicity=None, add_du
     
 
 
-    log_agebins = np.array([[0., 6.5],
-                            [6.5, 6.75], 
+    log_agebins = np.array([[0., 6.75], 
                             [6.75, 7.],
                             [7., 7.25],
                             [7.25, 7.5],
@@ -59,7 +53,6 @@ def build_model(object_redshift=None, ldist=10.0, fixed_metallicity=None, add_du
                             [9., 9.5],
                             [9.5, 10.]
                             ])
-
 
     model_params['agebins']['init'] = log_agebins
     
@@ -108,7 +101,6 @@ def build_model(object_redshift=None, ldist=10.0, fixed_metallicity=None, add_du
     model_params['dust_index']['disp_floor'] = 1e-3
 
 
-    model = SpecModel(model_params)
+    model = SedModel(model_params)
 
     return model
-
