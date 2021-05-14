@@ -10,7 +10,7 @@ import prospect
 from prospect.utils.obsutils import fix_obs
 import numpy as np
 import pandas as pd
-print(sedpy)
+
 
 def flux_to_maggies(wave, flux, flux_unc):
     maggies = flux*3.34e4*wave**2*1e-17/3631
@@ -87,10 +87,10 @@ def build_obs_spectra(object_data, object_redshift, object_spectrum = None, test
         err = np.array(spec.data['err'][0]).byteswap().newbyteorder()
         mask = np.array(spec.data['mask'][0]).byteswap().newbyteorder()
         df = pd.DataFrame({'wspec':w, 'fspec':f, 'errspec':err, 'mask':mask})
-        dfg = df.loc[df['mask'] == 0.] 
-        dfg = dfg.loc[(dfg['wspec'] >= 3500) & (dfg['wspec'] <= 4200)]
+        #dfg = df.loc[df['mask'] == 0.] 
+        df = df.loc[(df['wspec'] >= 3500) & (df['wspec'] <= 4200)]
 
-        fspec_maggies, fspec_err_maggies = flux_to_maggies(dfg.wspec.values, dfg.fspec.values, dfg.errspec.values)
+        fspec_maggies, fspec_err_maggies = flux_to_maggies(df.wspec.values, df.fspec.values, df.errspec.values)
 
     if 912*object_redshift > 1400:
         obs['phot_mask'] = np.array([('galex_FUV' not in f.name) for f in obs["filters"]])
@@ -103,7 +103,7 @@ def build_obs_spectra(object_data, object_redshift, object_spectrum = None, test
         obs["maggies"] = maggies
         obs["maggies_unc"] = maggies_unc
 
-        obs["wavelength"] = dfg.wspec.values*(1+object_redshift)
+        obs["wavelength"] = df.wspec.values*(1+object_redshift)
         obs["spectrum"] = fspec_maggies
         obs['unc'] = fspec_err_maggies
 
@@ -112,14 +112,14 @@ def build_obs_spectra(object_data, object_redshift, object_spectrum = None, test
         obs["maggies_unc"] = maggies_unc
 
         if object_spectrum is not None:
-            obs["wavelength"] = dfg.wspec.values*(1+object_redshift)
+            obs["wavelength"] = df.wspec.values*(1+object_redshift)
             obs["spectrum"] = fspec_maggies*(1+object_redshift)
             obs['unc'] = fspec_err_maggies*(1+object_redshift)
+            obs['mask'] = df['mask'].values
         else:
             obs['wavelength'] = None
             obs['spectrum'] = None
             obs['unc'] = None
-    #obs['mask'] = None
     obs = fix_obs(obs)
 
     return obs 

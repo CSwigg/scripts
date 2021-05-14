@@ -43,6 +43,7 @@ from prospect.utils.obsutils import fix_obs
 from helper_functions import * 
 
 from non_parametric_model_1 import *
+from non_parametric_model_spec_cal import *
 from fast_step_basis_sps import *
 from obs_1_spectra import *
 #from obs_1 import *
@@ -93,10 +94,10 @@ def read_in_model(filepath):
 hizea_file = fits.open('/Users/cam/Desktop/astro_research/prospector_work/hizea_photo_galex_wise_v1.3.fit')[1]
 cosmo = LambdaCDM(67.4, .315, .685)
 
-run_directory = '/Users/cam/Desktop/astro_research/prospector_work/results/test_no_spec_2/'
+run_directory = '/Users/cam/Desktop/astro_research/prospector_work/results/test_spec_calibrated_3/'
 
 galaxies = hizea_file.data
-#galaxies = galaxies[1:]
+#galaxies = [galaxies[1]]
 
 start_time = time.time()
 
@@ -131,6 +132,7 @@ for i in range(len(galaxies)):
     run_params["sfh"] = 3
     #run_params["verbose"] = verbose
     run_params["add_duste"] = True
+    run_params['g_name'] = galaxy_name
     #run_params["nthreads"] = 8
     
     
@@ -145,10 +147,11 @@ for i in range(len(galaxies)):
     #n_params = 19
     n_params = 20
 
-    obs = build_obs_spectra(object_data = object_data, object_redshift = galaxy_z, object_spectrum = None, test_model = None)
+    obs = build_obs_spectra(object_data = object_data, object_redshift = galaxy_z, object_spectrum = spec, test_model = None)
     #obs = build_obs(object_data = object_data, object_redshift = galaxy_z)
     sps = build_sps(**run_params)
-    model = build_model(**run_params)
+    model = build_model_new(**run_params)
+    #model = build_model(**run_params)
     
     # Prospector imports; MUST BE IMPORTED AFTER DEFINING SPS, otherwise segfault occurs
     from prospect.fitting import lnprobfn, fit_model

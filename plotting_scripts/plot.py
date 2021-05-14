@@ -28,6 +28,7 @@ from helper_functions import *
 
 from non_parametric_model_1 import build_model
 from non_parametric_model_old import build_model_old
+from non_parametric_model_spec_cal import build_model_new
 from parametric_model_1 import build_model_parametric 
 from fast_step_basis_sps import build_sps
 from csps_step_basis_sps import build_sps_csps
@@ -54,10 +55,11 @@ def generate_model(theta, obs, sps, model):
     return wspec, mspec, mphot, wphot, mextra
 
 
-def get_from_reader(filename, hizea_file, model_type):
+def get_from_reader(filename, g_name, hizea_file, model_type):
     result, obs, _ = reader.results_from(filename, dangerous=False)
     data = hizea_file.data[0]
     run_params = result['run_params']
+    run_params['g_name'] = g_name
 
 
     if model_type == 'parametric':
@@ -65,7 +67,7 @@ def get_from_reader(filename, hizea_file, model_type):
         sps = build_sps_csps(**run_params)
 
     elif model_type == 'non_parametric':
-        model = build_model(**run_params)
+        model = build_model_new(**run_params)
         sps = build_sps(**run_params)
 
     elif model_type == 'non_parametric_old':
@@ -125,7 +127,7 @@ def plot_best_spec(ax_in, obs, wspec, mspec, mphot, wphot, run_params):
     return ax_in
 
 
-def random_draw(ax, run_params, obs, sps, model, result):
+def random_draw(ax, run_params, obs, sps, model, result, flux_shift = False):
     randint = np.random.randint
     theta_rand_list = []
     nwalkers, niter = run_params['nwalkers'], run_params['niter']
@@ -133,6 +135,10 @@ def random_draw(ax, run_params, obs, sps, model, result):
     for i in range(100):
         theta = result['chain'][randint(nwalkers), randint(niter)]
         wspec, mpsec, mphot, wphot, mextra = generate_model(theta, obs, sps, model) 
+        
+        if flux_shift:
+            mspec = mspec/(1+z)
+
         ax.plot(wspec/(1+z), mpsec, lw = 0.1, alpha = 0.5, color = 'gray', zorder = 0)
     return ax
 
