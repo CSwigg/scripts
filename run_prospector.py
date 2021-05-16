@@ -94,7 +94,7 @@ def read_in_model(filepath):
 hizea_file = fits.open('/Users/cam/Desktop/astro_research/prospector_work/hizea_photo_galex_wise_v1.3.fit')[1]
 cosmo = LambdaCDM(67.4, .315, .685)
 
-run_directory = '/Users/cam/Desktop/astro_research/prospector_work/results/test_spec_calibrated_3/'
+run_directory = '/Users/cam/Desktop/astro_research/prospector_work/results/test_spec_calibrated_4/'
 
 galaxies = hizea_file.data
 #galaxies = [galaxies[1]]

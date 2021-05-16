@@ -92,9 +92,11 @@ def build_obs_spectra(object_data, object_redshift, object_spectrum = None, test
 
         fspec_maggies, fspec_err_maggies = flux_to_maggies(df.wspec.values, df.fspec.values, df.errspec.values)
 
-    if 912*object_redshift > 1400:
+    if 912*(1+object_redshift) > 1400:
         obs['phot_mask'] = np.array([('galex_FUV' not in f.name) for f in obs["filters"]])
         obs['galex_fuv_masked'] = True
+    else:
+        obs['galex_fuv_masked'] = False
 
     if test_model is not None:
         # if using a model as fake data
@@ -115,7 +117,7 @@ def build_obs_spectra(object_data, object_redshift, object_spectrum = None, test
             obs["wavelength"] = df.wspec.values*(1+object_redshift)
             obs["spectrum"] = fspec_maggies*(1+object_redshift)
             obs['unc'] = fspec_err_maggies*(1+object_redshift)
-            obs['mask'] = df['mask'].values
+            obs['mask'] = np.abs(df['mask'].values - 1)
         else:
             obs['wavelength'] = None
             obs['spectrum'] = None
