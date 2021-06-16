@@ -25,7 +25,7 @@ from matplotlib import gridspec
 
 
 import sys
-sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/python-fsps')
+sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/python_fsps_c3k')
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/sedpy')
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/prospector')
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/p_scripts')
@@ -37,6 +37,9 @@ sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/scripts/st
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/scripts/plotting_scripts') # My directory of plotting functions
 
 import fsps
+sps = fsps.StellarPopulation(zcontinuous=1)
+print(sps.libraries) # TEST 
+
 import sedpy
 import prospect
 from prospect.utils.obsutils import fix_obs
@@ -44,6 +47,8 @@ from helper_functions import *
 
 from non_parametric_model_1 import *
 from non_parametric_model_spec_cal import *
+from non_parametric_model_add_bin import *
+from non_parametric_model_nir_fix import *
 from fast_step_basis_sps import *
 from obs_1_spectra import *
 #from obs_1 import *
@@ -96,7 +101,7 @@ def read_in_model(filepath):
 hizea_file = fits.open('/Users/cam/Desktop/astro_research/prospector_work/hizea_photo_galex_wise_v1.3.fit')[1]
 cosmo = LambdaCDM(67.4, .315, .685)
 
-run_directory = '/Users/cam/Desktop/astro_research/prospector_work/results/test_bpass_2/'
+run_directory = '/Users/cam/Desktop/astro_research/prospector_work/results/test_c3k_spec_add_bin_2/'
 
 galaxies = hizea_file.data
 #galaxies = [galaxies[1]]
@@ -104,13 +109,17 @@ galaxies = hizea_file.data
 start_time = time.time()
 
 for i in range(len(galaxies)):
-    
-    
+   
+
     galaxy = galaxies[i]
     galaxy_name = galaxy['short_name']
+
+    if galaxy_name not in ['J0901+0314','J0905+5759','J0826+4305']:
+        continue
+
+
     
-    
-    spec = fits.open('/Users/cam/Downloads/hizea_mask/{}_mask.fit'.format(galaxy_name))[1]
+    spec = fits.open('/Users/cam/Desktop/astro_research/prospector_work/spectra/{}_mask.fit'.format(galaxy_name))[1]
     
     galaxy_z = galaxy['Z']
     galaxy_z_age = cosmo.age(galaxy_z) # age at given z
@@ -135,7 +144,10 @@ for i in range(len(galaxies)):
     #run_params["verbose"] = verbose
     run_params["add_duste"] = True
     run_params['g_name'] = galaxy_name
-    #run_params["nthreads"] = 8
+
+    # setting temperature
+    run_params["logt_wmb_hot"] = np.log10(50000.0)
+    run_params["use_wr_spectra"] = 0
     
     
     
@@ -147,12 +159,13 @@ for i in range(len(galaxies)):
     #n_params = 22
     #n_params = 18
     #n_params = 19
-    n_params = 20
+    #n_params = 20
 
     obs = build_obs_spectra(object_data = object_data, object_redshift = galaxy_z, object_spectrum = spec, test_model = None)
     #obs = build_obs(object_data = object_data, object_redshift = galaxy_z)
     sps = build_sps(**run_params)
-    model = build_model_new(**run_params)
+    model, n_params = build_model_add_bin(**run_params, obs = obs)
+    print(n_params)
     #model = build_model(**run_params)
     
     # Prospector imports; MUST BE IMPORTED AFTER DEFINING SPS, otherwise segfault occurs
@@ -175,9 +188,9 @@ for i in range(len(galaxies)):
     run_params["optimize"] = False
     run_params["emcee"] = True
     run_params["dynesty"] = False
-    run_params["nwalkers"] = 100
-    run_params["niter"] = 10000
-    run_params["nburn"] = [800, 800, 1000]
+    run_params["nwalkers"] = 200
+    run_params["niter"] = 15000
+    run_params["nburn"] = [1100, 1100, 1500]
 
     output = fit_model(obs, model, sps, lnprobfn=lnprobfn, **run_params)
     print('done with emcee in {0}s'.format(output["sampling"][1]))
@@ -188,24 +201,6 @@ for i in range(len(galaxies)):
                       output["sampling"][0], output["optimization"][0],
                       tsample=output["sampling"][1],
                       toptimize=output["optimization"][1])
-    
-    
-#     make_sed_plot(galaxy_file = hfile, 
-#                   g_name = galaxy_name, 
-#                   hizea_file = hizea_file, 
-#                   results_dir = galaxy_output_directory)
-    
-#     make_corner_plot(galaxy_file = hfile,
-#                      g_name = galaxy_name,
-#                      hizea_file = hizea_file, 
-#                      results_dir = galaxy_output_directory,
-#                      n_params = n_params
-#                     )
-    
-#     make_traceplot(galaxy_file = hfile, 
-#                   g_name = galaxy_name, 
-#                   hizea_file = hizea_file, 
-#                   results_dir = galaxy_output_directory)
     
     
     print('Fitting of {} finished'.format(galaxy_name) + '\n')

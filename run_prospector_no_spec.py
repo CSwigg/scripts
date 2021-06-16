@@ -25,7 +25,7 @@ from matplotlib import gridspec
 
 
 import sys
-sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/python-fsps')
+sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/python_fsps_c3k')
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/sedpy')
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/prospector')
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/p_scripts')
@@ -37,6 +37,9 @@ sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/scripts/st
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/scripts/plotting_scripts') # My directory of plotting functions
 
 import fsps
+sps = fsps.StellarPopulation(zcontinuous=1)
+print(sps.libraries) # TEST 
+
 import sedpy
 import prospect
 from prospect.utils.obsutils import fix_obs
@@ -96,7 +99,7 @@ def read_in_model(filepath):
 hizea_file = fits.open('/Users/cam/Desktop/astro_research/prospector_work/hizea_photo_galex_wise_v1.3.fit')[1]
 cosmo = LambdaCDM(67.4, .315, .685)
 
-run_directory = '/Users/cam/Desktop/astro_research/prospector_work/results/test_bpass_2/'
+run_directory = '/Users/cam/Desktop/astro_research/prospector_work/results/test_c3k/'
 
 galaxies = hizea_file.data
 #galaxies = [galaxies[1]]
@@ -105,9 +108,11 @@ start_time = time.time()
 
 for i in range(len(galaxies)):
     
-    
     galaxy = galaxies[i]
     galaxy_name = galaxy['short_name']
+
+    if galaxy_name != 'J0315-0740':
+        continue
     
     
     spec = fits.open('/Users/cam/Downloads/hizea_mask/{}_mask.fit'.format(galaxy_name))[1]
@@ -149,7 +154,7 @@ for i in range(len(galaxies)):
     #n_params = 19
     n_params = 20
 
-    obs = build_obs_spectra(object_data = object_data, object_redshift = galaxy_z, object_spectrum = spec, test_model = None)
+    obs = build_obs_spectra(object_data = object_data, object_redshift = galaxy_z, object_spectrum = None, test_model = None)
     #obs = build_obs(object_data = object_data, object_redshift = galaxy_z)
     sps = build_sps(**run_params)
     model = build_model_new(**run_params)

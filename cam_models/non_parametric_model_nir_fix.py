@@ -10,17 +10,15 @@ sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/p_scripts'
 
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/python_fsps_c3k')
 import fsps
-sps = fsps.StellarPopulation(zcontinuous=1)
-print(sps.libraries) # TEST 
 
 import sedpy
 import prospect
 import numpy as np
 import pandas as pd
 
-df = pd.read_csv('/Users/cam/Desktop/astro_research/prospector_work/add_sigma_bpass.csv')
+df = pd.read_csv('/Users/cam/Desktop/astro_research/prospector_work/add_sigma_c3k.csv')
 
-def build_model_new(g_name, object_redshift=None, ldist=10.0, fixed_metallicity=None, add_duste=False, 
+def build_model_nir_fix(g_name, obs, object_redshift=None, ldist=10.0, fixed_metallicity=None, add_duste=False,
                 **extras):
 
     from prospect.models.sedmodel import SedModel, SpecModel, PolySpecModel
@@ -35,11 +33,32 @@ def build_model_new(g_name, object_redshift=None, ldist=10.0, fixed_metallicity=
     model_params['sigma_smooth']['isfree'] = False
     model_params['sigma_smooth']['init'] = add_sigma
 
-    # photometric outlier modeling
-    #model_params.update(TemplateLibrary['outlier_model'])
-    #model_params['f_outlier_phot']['init'] = 4/13
-    #model_params['nsigma_outlier_phot']['init'] = 20
 
+    if obs['ukidss_or_vista'] == 'UKDISS':
+        init = [[f for f in obs['filternames'] if 'ukdss' in f]][0]
+
+    if obs['ukidss_or_vista'] == 'VISTA':
+        init = [[f for f in obs['filternames'] if 'vista' in f]][0]
+
+    if (obs['ukidss_or_vista'] == 'UKDISS') or (obs['ukidss_or_vista'] == 'VISTA'):
+
+        print(init)
+
+        # NoiseModel Parameters
+        model_params['phot_jitter'] = dict(N=1, isfree=False, init=1.0,
+                                           units="scale the photometric noise by this factor",
+                                           prior=None)
+        model_params['nir_offset'] = dict(N=1, isfree=True, init=1.0,
+                                          units="fractional offset of the NIR bands",
+                                          prior=priors.TopHat(mini=0.5, maxi=2))
+        model_params['nir_bandnames'] = dict(N=3, isfree=False,
+                                             init=init,
+                                             units="name of the correlated NIR bands",
+                                             prior=None)
+
+        n_params = 21
+    else:
+        n_params = 20
 
 
 
@@ -138,6 +157,5 @@ def build_model_new(g_name, object_redshift=None, ldist=10.0, fixed_metallicity=
 
     model = PolySpecModel(model_params)
 
-    n_params = 20
     return model, n_params
 

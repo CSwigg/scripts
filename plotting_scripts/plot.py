@@ -7,7 +7,6 @@ from astropy.table import Table
 import warnings
 warnings.filterwarnings('ignore')
 
-sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/python-fsps')
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/sedpy')
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/prospector')
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/p_scripts')
@@ -18,8 +17,10 @@ sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/scripts/ca
 sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/scripts/stats') # My directory of stat functions
 #sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/prospector_scripts/plotting_scripts') # My directory of plotting functions
 
-
+sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/python_fsps_c3k')
 import fsps
+
+
 import sedpy
 import prospect
 from prospect.utils.obsutils import fix_obs
@@ -29,6 +30,8 @@ from helper_functions import *
 from non_parametric_model_1 import build_model
 from non_parametric_model_old import build_model_old
 from non_parametric_model_spec_cal import build_model_new
+from non_parametric_model_nir_fix import build_model_nir_fix
+from non_parametric_model_add_bin import build_model_add_bin
 from parametric_model_1 import build_model_parametric 
 from fast_step_basis_sps import build_sps
 from csps_step_basis_sps import build_sps_csps
@@ -67,7 +70,9 @@ def get_from_reader(filename, g_name, hizea_file, model_type):
         sps = build_sps_csps(**run_params)
 
     elif model_type == 'non_parametric':
-        model = build_model_new(**run_params)
+        #model = build_model_new(**run_params)
+        #model, n_params = build_model_nir_fix(**run_params, obs = obs)
+        model, n_params = build_model_add_bin(**run_params, obs = obs)
         sps = build_sps(**run_params)
 
     elif model_type == 'non_parametric_old':
@@ -87,7 +92,7 @@ def get_from_reader(filename, g_name, hizea_file, model_type):
 
 def make_corner_plot(galaxy_file, g_name, hizea_file, results_dir, n_params, model_type):
     
-    theta_max, obs, sps, model, run_params, result = get_from_reader(galaxy_file, hizea_file, model_type) 
+    theta_max, obs, sps, model, run_params, result = get_from_reader(galaxy_file, g_name, hizea_file, model_type) 
     
     thin = 5
     cornerfig = reader.subcorner(result, start=0, thin=thin, truths=theta_max,
@@ -98,7 +103,7 @@ def make_corner_plot(galaxy_file, g_name, hizea_file, results_dir, n_params, mod
 
 def make_traceplot(galaxy_file, g_name, hizea_file, results_dir, model_type):
     
-    theta_max, obs, sps, model, run_params, result = get_from_reader(galaxy_file, hizea_file, model_type) 
+    theta_max, obs, sps, model, run_params, result = get_from_reader(galaxy_file, g_name, hizea_file, model_type) 
     tracefig = reader.traceplot(result, figsize=(28,18))
     plt.savefig('{}{}/traceplot_new.png'.format(results_dir, g_name), dpi = 300, overwrite = True)
     plt.close()
@@ -134,19 +139,19 @@ def random_draw(ax, run_params, obs, sps, model, result, flux_shift = False):
     z = run_params['object_redshift']
     for i in range(100):
         theta = result['chain'][randint(nwalkers), randint(niter)]
-        wspec, mpsec, mphot, wphot, mextra = generate_model(theta, obs, sps, model) 
+        wspec, mspec, mphot, wphot, mextra = generate_model(theta, obs, sps, model) 
         
         if flux_shift:
             mspec = mspec/(1+z)
 
-        ax.plot(wspec/(1+z), mpsec, lw = 0.1, alpha = 0.5, color = 'gray', zorder = 0)
+        ax.plot(wspec/(1+z), mspec, lw = 0.1, alpha = 0.5, color = 'gray', zorder = 0)
     return ax
 
 
 
 def make_sed_plot(galaxy_file, g_name, hizea_file, results_dir, model_type, set_limits = True, return_fig_ax = False):
 
-    theta_max, obs, sps, model, run_params, result = get_from_reader(galaxy_file, hizea_file, model_type) 
+    theta_max, obs, sps, model, run_params, result = get_from_reader(galaxy_file, g_name, hizea_file, model_type) 
 
     wave_spectrum = obs['wavelength']
     flux_spectrum = obs['spectrum']
