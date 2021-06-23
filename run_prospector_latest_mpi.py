@@ -2,7 +2,7 @@ import time, sys
 import argparse
 
 import os
-# os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OMP_NUM_THREADS"] = "1"
 
 # import multiprocessing as mp
 # mp.set_start_method('fork')
@@ -38,7 +38,6 @@ sys.path.insert(0, '/Users/cam/Desktop/astro_research/prospector_work/scripts/pl
 
 import fsps
 sps = fsps.StellarPopulation(zcontinuous=1)
-print(sps.libraries) # TEST 
 
 import sedpy
 import prospect
@@ -49,6 +48,7 @@ from non_parametric_model_1 import *
 from non_parametric_model_spec_cal import *
 from non_parametric_model_add_bin import *
 from non_parametric_model_nir_fix import *
+from non_parametric_model_latest import *
 from fast_step_basis_sps import *
 from obs_1_spectra import *
 #from obs_1 import *
@@ -58,7 +58,6 @@ from plot import *
 import emcee
 import dynesty
 
-print(fsps)
 
 def generate_model(theta, obs, sps, model):
 
@@ -96,12 +95,13 @@ def read_in_model(filepath):
     return test_model
 
 
+#def run_prospector(galaxy_index):
 
-
-hizea_file = fits.open('/Users/cam/Desktop/astro_research/prospector_work/hizea_photo_galex_wise_v1.3.fit')[1]
+    #hizea_file = fits.open('/Users/cam/Desktop/astro_research/prospector_work/hizea_photo_galex_wise_v1.3.fit')[1]
+hizea_file = fits.open('/Users/cam/Desktop/astro_research/prospector_work/hizea_fixed.fits')[1]
 cosmo = LambdaCDM(67.4, .315, .685)
 
-run_directory = '/Users/cam/Desktop/astro_research/prospector_work/results/test_c3k_spec_dynesty/'
+run_directory = '/Users/cam/Desktop/astro_research/prospector_work/results/test_c3k_mpi_test_4/'
 
 galaxies = hizea_file.data
 #galaxies = [galaxies[1]]
@@ -109,53 +109,54 @@ galaxies = hizea_file.data
 start_time = time.time()
 
 for i in range(len(galaxies)):
-   
+
 
     galaxy = galaxies[i]
     galaxy_name = galaxy['short_name']
 
-    if galaxy_name not in ['J0901+0314','J0905+5759','J0826+4305']:
-        continue
+    #if galaxy_name not in ['J0901+0314','J0905+5759','J0826+4305']:
+    #    continue
 
 
-    
+
     spec = fits.open('/Users/cam/Desktop/astro_research/prospector_work/spectra/{}_mask.fit'.format(galaxy_name))[1]
-    
+
     galaxy_z = galaxy['Z']
     galaxy_z_age = cosmo.age(galaxy_z) # age at given z
-    
+
     galaxy_output_directory = run_directory + galaxy_name
-    
+
+    #TODO: needed for loop
     try:
         os.mkdir(run_directory + galaxy_name)
     except:
-        continue 
-        
+       continue 
+
     print('Running on {}'.format(galaxy_name))
 
     run_params = {}
     object_data = galaxy
-    
+
     run_params['object_redshift'] = galaxy_z
     run_params['object_redshift_age'] = galaxy_z_age
     run_params["fixed_metallicity"] = None
     run_params["zcontinuous"] = 1
     run_params["sfh"] = 3
-    run_params["verbose"] = verbose
+    #run_params["verbose"] = verbose
     run_params["add_duste"] = True
     run_params['g_name'] = galaxy_name
 
     # setting temperature
     run_params["logt_wmb_hot"] = np.log10(50000.0)
     run_params["use_wr_spectra"] = 0
-    
-    
-    
+
+
+
     # testing on the original best-fit model (stability test)
     #test_model = read_in_model('/Users/cam/Desktop/astro_research/prospector_work/results/test_spec_model_2/{}/{}.h5'.format(galaxy_name, galaxy_name))
-    
 
- 
+
+
     #n_params = 22
     #n_params = 18
     #n_params = 19
@@ -164,10 +165,9 @@ for i in range(len(galaxies)):
     obs = build_obs_spectra(object_data = object_data, object_redshift = galaxy_z, object_spectrum = spec, test_model = None)
     #obs = build_obs(object_data = object_data, object_redshift = galaxy_z)
     sps = build_sps(**run_params)
-    model, n_params = build_model_nir_fix(**run_params, obs = obs)
-    print(n_params)
+    model, n_params = build_model_latest(**run_params, obs = obs)
     #model = build_model(**run_params)
-    
+
     # Prospector imports; MUST BE IMPORTED AFTER DEFINING SPS, otherwise segfault occurs
     from prospect.fitting import lnprobfn, fit_model
     from prospect.io import write_results as writer
@@ -186,23 +186,70 @@ for i in range(len(galaxies)):
 
     # ------- MCMC sampling -------
     run_params["optimize"] = False
-    run_params["emcee"] = False
-    run_params["dynesty"] = True
+    run_params["emcee"] = True
+    run_params["dynesty"] = False
 
-    run_params['nested_method'] = 'rwalk'
-    run_params['nlive_init'] = 200
-    run_params['nlive_batch'] = 200
-    run_params["nested_walks"] = 48
-    run_params["nested_dlogz_init"] = 0.1
-    run_params["nested_posterior_thresh"] = 0.05
-    #run_params["nested_maxcall"] = int(1e7)
-    
-    #run_params["nwalkers"] = 175
-    #run_params["niter"] = 7000
-    #run_params["nburn"] = [500, 500, 700]
+    run_params['progress'] = True
+    run_params["nwalkers"] = 200
+    run_params["niter"] = 10000
+    run_params["nburn"] = [800, 800, 1000]
 
-    output = fit_model(obs, model, sps, lnprobfn=lnprobfn, **run_params)
-    print('done with dynesty in {0}s'.format(output["sampling"][1]))
+
+
+    # -------- MPI stuff --------- 
+    try:
+        import mpi4py
+        from mpi4py import MPI
+        from schwimmbad import MPIPool
+
+        mpi4py.rc.threads = False
+        mpi4py.rc.recv_mprobe = False
+
+        comm = MPI.COMM_WORLD
+        size = comm.Get_size()
+
+        withmpi = comm.Get_size() > 1
+    except ImportError:
+        print('Failed to start MPI; are mpi4py and schwimmbad installed? Proceeding without MPI.')
+        withmpi = False
+
+    # Evaluate SPS over logzsol grid in order to get necessary data in cache/memory
+    # for each MPI process. Otherwise, you risk creating a lag between the MPI tasks
+    # caching data depending which can slow down the parallelization
+    if (withmpi) & ('logzsol' in model.free_params):
+        dummy_obs = dict(filters=None, wavelength=None)
+
+        logzsol_prior = model.config_dict["logzsol"]['prior']
+        lo, hi = logzsol_prior.range
+        logzsol_grid = np.around(np.arange(lo, hi, step=0.1), decimals=2)
+
+        sps.update(**model.params)  # make sure we are caching the correct IMF / SFH / etc
+        for logzsol in logzsol_grid:
+            model.params["logzsol"] = np.array([logzsol])
+            _ = model.predict(model.theta, obs=dummy_obs, sps=sps)
+
+    # ensure that each processor runs its own version of FSPS
+    # this ensures no cross-over memory usage
+    from prospect.fitting import lnprobfn
+    from functools import partial
+    lnprobfn_fixed = partial(lnprobfn, sps=sps)
+
+    if withmpi:
+        print('withmpi is {}'.format(withmpi))
+        with MPIPool() as pool:
+            # The subprocesses will run up to this point in the code
+            if not pool.is_master():
+                pool.wait()
+                sys.exit(0)
+            nprocs = pool.size
+            output = fit_model(obs, model, sps, pool=pool, queue_size=nprocs, lnprobfn=lnprobfn_fixed, **run_params)
+    else:
+        output = fit_model(obs, model, sps, lnprobfn=lnprobfn_fixed, **run_params)
+
+
+
+
+    print('done with emcee in {0}s'.format(output["sampling"][1]))
 
     hfile = galaxy_output_directory + '/' + "{}.h5".format(galaxy_name)
     print(hfile)
@@ -210,10 +257,10 @@ for i in range(len(galaxies)):
                       output["sampling"][0], output["optimization"][0],
                       tsample=output["sampling"][1],
                       toptimize=output["optimization"][1])
-    
-    
+
+
     print('Fitting of {} finished'.format(galaxy_name) + '\n')
+    print("--- %s hours ---" % ((time.time() - start_time)/60/60))
 
-print("--- %s hours ---" % ((time.time() - start_time)/60/60))
-
+    
 

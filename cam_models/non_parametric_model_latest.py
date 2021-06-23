@@ -18,7 +18,7 @@ import pandas as pd
 
 df = pd.read_csv('/Users/cam/Desktop/astro_research/prospector_work/add_sigma_c3k.csv')
 
-def build_model_add_bin(g_name, obs, object_redshift=None, ldist=10.0, fixed_metallicity=None, add_duste=False,
+def build_model_latest(g_name, obs, object_redshift=None, ldist=10.0, fixed_metallicity=None, add_duste=False,
                 **extras):
 
     from prospect.models.sedmodel import SedModel, SpecModel, PolySpecModel
@@ -28,10 +28,14 @@ def build_model_add_bin(g_name, obs, object_redshift=None, ldist=10.0, fixed_met
     model_params = TemplateLibrary["continuity_sfh"]
 
     # spectral smoothing
-    add_sigma = df[df['short_name'] == g_name]['add_sigma'].values
-    model_params.update(TemplateLibrary['spectral_smoothing'])
-    model_params['sigma_smooth']['isfree'] = False
-    model_params['sigma_smooth']['init'] = add_sigma
+    n_params = 0
+    if obs['wavelength'] is not None:
+        add_sigma = df[df['short_name'] == g_name]['add_sigma'].values
+        model_params.update(TemplateLibrary['spectral_smoothing'])
+        model_params['sigma_smooth']['isfree'] = True
+        model_params['sigma_smooth']['init'] = add_sigma
+        model_params['sigma_smooth']['prior'] = priors.Uniform(mini=150, maxi=250)
+        n_params += 1
 
 
     if obs['ukidss_or_vista'] == 'UKDISS':
@@ -41,8 +45,6 @@ def build_model_add_bin(g_name, obs, object_redshift=None, ldist=10.0, fixed_met
         init = [[f for f in obs['filternames'] if 'vista' in f]][0]
 
     if (obs['ukidss_or_vista'] == 'UKDISS') or (obs['ukidss_or_vista'] == 'VISTA'):
-
-        print(init)
 
         # NoiseModel Parameters
         model_params['phot_jitter'] = dict(N=1, isfree=False, init=1.0,
@@ -56,9 +58,9 @@ def build_model_add_bin(g_name, obs, object_redshift=None, ldist=10.0, fixed_met
                                              units="name of the correlated NIR bands",
                                              prior=None)
 
-        n_params = 22
+        n_params += 22
     else:
-        n_params = 21
+        n_params += 21
 
 
 
@@ -136,7 +138,7 @@ def build_model_add_bin(g_name, obs, object_redshift=None, ldist=10.0, fixed_met
         model_params['duste_gamma']['isfree'] = True
         
         model_params['duste_umin']['prior'] = priors.LogUniform(mini=0.1, maxi=15.)
-        model_params['duste_qpah']['prior'] = priors.LogUniform(mini=0.1, maxi=7.)
+        model_params['duste_qpah']['prior'] = priors.LogUniform(mini=0.1, maxi=5.)
         model_params['duste_gamma']['prior'] = priors.LogUniform(mini=0.001, maxi=0.15)
         
         model_params['duste_umin']['init'] = 7.5
@@ -156,7 +158,7 @@ def build_model_add_bin(g_name, obs, object_redshift=None, ldist=10.0, fixed_met
     model_params['dust_index']['disp_floor'] = 1e-3
 
 
-    model = PolySpecModel(model_params)
+    model = SpecModel(model_params)
 
     return model, n_params
 

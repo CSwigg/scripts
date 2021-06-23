@@ -32,6 +32,7 @@ from non_parametric_model_old import build_model_old
 from non_parametric_model_spec_cal import build_model_new
 from non_parametric_model_nir_fix import build_model_nir_fix
 from non_parametric_model_add_bin import build_model_add_bin
+from non_parametric_model_latest import build_model_latest
 from parametric_model_1 import build_model_parametric 
 from fast_step_basis_sps import build_sps
 from csps_step_basis_sps import build_sps_csps
@@ -71,8 +72,8 @@ def get_from_reader(filename, g_name, hizea_file, model_type):
 
     elif model_type == 'non_parametric':
         #model = build_model_new(**run_params)
-        #model, n_params = build_model_nir_fix(**run_params, obs = obs)
-        model, n_params = build_model_add_bin(**run_params, obs = obs)
+        model, n_params = build_model_latest(**run_params, obs = obs)
+        #model, n_params = build_model_add_bin(**run_params, obs = obs)
         sps = build_sps(**run_params)
 
     elif model_type == 'non_parametric_old':

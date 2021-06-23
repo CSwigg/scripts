@@ -49,6 +49,7 @@ from non_parametric_model_1 import *
 from non_parametric_model_spec_cal import *
 from non_parametric_model_add_bin import *
 from non_parametric_model_nir_fix import *
+from non_parametric_model_latest import *
 from fast_step_basis_sps import *
 from obs_1_spectra import *
 #from obs_1 import *
@@ -101,7 +102,7 @@ def read_in_model(filepath):
 hizea_file = fits.open('/Users/cam/Desktop/astro_research/prospector_work/hizea_photo_galex_wise_v1.3.fit')[1]
 cosmo = LambdaCDM(67.4, .315, .685)
 
-run_directory = '/Users/cam/Desktop/astro_research/prospector_work/results/test_c3k_spec_dynesty/'
+run_directory = '/Users/cam/Desktop/astro_research/prospector_work/results/test_bpass_2/'
 
 galaxies = hizea_file.data
 #galaxies = [galaxies[1]]
@@ -114,8 +115,8 @@ for i in range(len(galaxies)):
     galaxy = galaxies[i]
     galaxy_name = galaxy['short_name']
 
-    if galaxy_name not in ['J0901+0314','J0905+5759','J0826+4305']:
-        continue
+    #if galaxy_name not in ['J0901+0314','J0905+5759','J0826+4305']:
+    #    continue
 
 
     
@@ -141,7 +142,7 @@ for i in range(len(galaxies)):
     run_params["fixed_metallicity"] = None
     run_params["zcontinuous"] = 1
     run_params["sfh"] = 3
-    run_params["verbose"] = verbose
+    #run_params["verbose"] = verbose
     run_params["add_duste"] = True
     run_params['g_name'] = galaxy_name
 
@@ -164,7 +165,7 @@ for i in range(len(galaxies)):
     obs = build_obs_spectra(object_data = object_data, object_redshift = galaxy_z, object_spectrum = spec, test_model = None)
     #obs = build_obs(object_data = object_data, object_redshift = galaxy_z)
     sps = build_sps(**run_params)
-    model, n_params = build_model_nir_fix(**run_params, obs = obs)
+    model, n_params = build_model_latest(**run_params, obs = obs)
     print(n_params)
     #model = build_model(**run_params)
     
@@ -185,21 +186,13 @@ for i in range(len(galaxies)):
 
 
     # ------- MCMC sampling -------
-    run_params["optimize"] = False
-    run_params["emcee"] = False
-    run_params["dynesty"] = True
+    run_params["optimize"] = True
+    run_params["emcee"] = True
+    run_params["dynesty"] = False
 
-    run_params['nested_method'] = 'rwalk'
-    run_params['nlive_init'] = 200
-    run_params['nlive_batch'] = 200
-    run_params["nested_walks"] = 48
-    run_params["nested_dlogz_init"] = 0.1
-    run_params["nested_posterior_thresh"] = 0.05
-    #run_params["nested_maxcall"] = int(1e7)
-    
-    #run_params["nwalkers"] = 175
-    #run_params["niter"] = 7000
-    #run_params["nburn"] = [500, 500, 700]
+    run_params["nwalkers"] = 200
+    run_params["niter"] = 5000
+    run_params["nburn"] = [300,300,500]
 
     output = fit_model(obs, model, sps, lnprobfn=lnprobfn, **run_params)
     print('done with dynesty in {0}s'.format(output["sampling"][1]))

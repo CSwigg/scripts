@@ -75,6 +75,7 @@ def build_obs_spectra(object_data, object_redshift, object_spectrum = None, test
     maggies_unc = (flux_flam_err*3.34e4*wave**2*1e-17)/(3631)
 
     maggies, maggies_unc = flux_to_maggies(wave, flux_flam, flux_flam_err)
+    print(maggies_unc)
 
 
     
